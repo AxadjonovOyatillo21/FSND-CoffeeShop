@@ -1,10 +1,13 @@
 import os
 from flask import Flask, request, jsonify, abort
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import exc
+from sqlalchemy.exc import SQLAlchemyError
 import json
 from . import app
 from .database.models import Drink
 from .auth.auth import AuthError, requires_auth
+
 
 @app.route('/drinks')
 def get_all_drinks():
@@ -13,7 +16,8 @@ def get_all_drinks():
     return jsonify({
         "success": True,
         "drinks": drinks
-    }) 
+    })
+
 
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
@@ -23,7 +27,8 @@ def get_all_drinks_detail(payload):
     return jsonify({
         "success": True,
         "drinks": drinks
-    }) 
+    })
+
 
 @app.route('/drinks', methods=['POST'])
 @requires_auth("post:drinks")
@@ -32,16 +37,16 @@ def add_new_drink(payload):
     title = data['title'] or abort(400)
     recipe = data['recipe'] or abort(400)
     recipe = json.dumps(recipe)
-    print(data)
     try:
         drink = Drink(title=title, recipe=recipe)
         drink.insert()
-    except:
+    except SQLAlchemyError:
         abort(422)
     return jsonify({
         "success": True,
         "drinks": [drink.long()]
     })
+
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth("patch:drinks")
@@ -54,7 +59,7 @@ def update_drink(payload, drink_id: int):
         drink.recipe = json.dumps(data['recipe'])
     try:
         drink.update()
-    except:
+    except SQLAlchemyError:
         abort(422)
     return jsonify({
         "success": True,
@@ -68,14 +73,17 @@ def delete_drink(payload, drink_id: int):
     drink = Drink.query.get_or_404(drink_id)
     try:
         drink.delete()
-    except:
+    except SQLAlchemyError:
         abort(422)
     return jsonify({
         "success": True,
         "delete": drink_id
     })
 
+
 # Error Handlers
+
+
 @app.errorhandler(400)
 def bad_request(e):
     return jsonify({
@@ -83,6 +91,7 @@ def bad_request(e):
         "code": 400,
         "message": "bad request"
     }), 400
+
 
 @app.errorhandler(401)
 def unauthorized(e):
@@ -92,6 +101,7 @@ def unauthorized(e):
         "message": "unauthorized"
     }), 401
 
+
 @app.errorhandler(403)
 def unauthorized(e):
     return jsonify({
@@ -99,6 +109,7 @@ def unauthorized(e):
         "code": 403,
         "message": "forbidden: access denied"
     }), 403
+
 
 @app.errorhandler(422)
 def unprocessable_entity(e):
@@ -108,6 +119,7 @@ def unprocessable_entity(e):
         "message": "unprocessable entity"
     }), 422
 
+
 @app.errorhandler(500)
 def unprocessable_entity(e):
     return jsonify({
@@ -115,6 +127,7 @@ def unprocessable_entity(e):
         "code": 500,
         "message": "internal server error"
     }), 500
+
 
 @app.errorhandler(AuthError)
 def authentication_error(e: AuthError):

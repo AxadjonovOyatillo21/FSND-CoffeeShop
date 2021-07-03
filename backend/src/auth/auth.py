@@ -9,22 +9,22 @@ AUTH0_DOMAIN = 'flaskdev.us.auth0.com'
 ALGORITHMS = ['RS256']
 API_AUDIENCE = 'coffeeShop'
 
-## AuthError Exception
-'''
-AuthError Exception
-A standardized way to communicate auth failure modes
-'''
+
+# AuthError Exception
+
+
 class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
         self.status_code = status_code
 
 
-## Auth Header
+# Auth Header
+
 
 def get_token_auth_header():
     if 'Authorization' not in request.headers:
-       abort(401)
+        abort(401)
 
     auth_header = request.headers['Authorization']
     header_pats = auth_header.split(' ')
@@ -35,16 +35,17 @@ def get_token_auth_header():
 
     return header_pats[1]
 
+
 def check_permissions(payload, permission):
-    if not 'permissions' in payload:
+    if 'permissions' not in payload:
         raise AuthError({
             'code': 'invalid_claims',
             'description': 'Permissions not included in JWT.'
         }, 400)
-    
-    if not permission in payload['permissions']:
+    if permission not in payload['permissions']:
         abort(403)
     return True
+
 
 def verify_decode_jwt(token):
     jsonurl = urlopen("https://{}/.well-known/jwks.json".format(AUTH0_DOMAIN))
@@ -52,7 +53,7 @@ def verify_decode_jwt(token):
 
     unverified_token = jwt.get_unverified_header(token)
 
-    if not 'kid' in unverified_token:
+    if 'kid' not in unverified_token:
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization malformed.'
@@ -87,7 +88,8 @@ def verify_decode_jwt(token):
         except jwt.JWTClaimsError:
             raise AuthError({
                 'code': 'invalid_claims',
-                'description': 'Incorrect claims. Pleas, check the audience and issuer.'
+                'description': 
+                    'Incorrect claims. Please, check the audience and issuer.'
             }, 401)
         except Exception:
             raise AuthError({
@@ -98,6 +100,7 @@ def verify_decode_jwt(token):
         'code': 'invalid_header',
         'description': 'Unable to find appropriate key.' 
     })
+
 
 def requires_auth(permission=''):
     def requires_auth_decorator(f):
